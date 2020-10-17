@@ -9,6 +9,9 @@ using BitIntegers
 import Base.getindex
 import Base.setindex!
 
+export new_tree, merkle_proof, verify_proof, compress_proof, decompress_proof
+export Hash
+
 # Assumes system is little endian
 function from_bytes(b)::UInt256
     reinterpret(UInt256, reverse(b))[1]
@@ -98,6 +101,10 @@ struct Proof
     zero_bitmask
 end
 
+function Base.:(==)(x::Proof, y::Proof)
+    x.sidenodes == y.sidenodes && x.zero_bitmask == y.zero_bitmask
+end
+
 function merkle_proof(smt::SMT, k::UInt256)
     # Iterate the tree top down and compute sidenodes
     s = reverse(bitmask(k))
@@ -152,45 +159,25 @@ end
 function compress_proof(proof)
     sidenodes = proof.sidenodes
     mask = (sidenodes .== zerohashes[2:end])
-    compressed = []
-    for (i, b) in enumerate(mask)
-        if b == false
-            append!(compressed, sidenodes[i].value)
-        end
-    end
+    compressed = [s.value for (s,b) in zip(sidenodes, mask) if !b]
     Proof(Hash.(compressed), mask)
 end
 
 function decompress_proof(proof)
-    j = 1
     sidenodes = proof.sidenodes
+    mask = proof.zero_bitmask
     decompressed = []
-    for (i, b) in enumerate(proof.zero_bitmask)
-        if b == false
-            append!(decompressed, sidenodes[j].value)
-            j += 1
+    for (z, b) in zip(zerohashes[2:end], mask)
+        d = if b
+	    z.value
         else
-            append!(decompressed, zerohashes[i+1].value)
+            s = pop!(sidenodes)
+            s.value
         end
+        append!(decompressed, d)
     end
     Proof(Hash.(decompressed), 0)
 end
 
-db = new_tree()
-println(db.root)
-k = UInt256(200)
-v = Vector{UInt8}(b"foo")
-db[k] = v
-println(db.root)
-p1 = merkle_proof(db, k)
-println(verify_proof(p1, db.root, k, v))
-k = UInt256(0xabababab000ffffccccc)
-v = Vector{UInt8}(b"bar")
-db[k] = v
-p2 = merkle_proof(db, k)
-p3 = compress_proof(p2)
-p4 = decompress_proof(p3)
-println(db.root)
-println(verify_proof(p4, db.root, k, v))
 
 end
