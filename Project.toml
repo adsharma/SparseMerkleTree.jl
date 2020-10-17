@@ -3,6 +3,11 @@ uuid = "97ddbf74-6531-4a59-82b9-6f0361157a0c"
 authors = ["Arun Sharma <arun@sharma-home.net> and contributors"]
 version = "0.1.0"
 
+[deps]
+BitIntegers = "c3b6d118-76ef-56ca-8cc7-ebb389d030a1"
+MLStyle = "d8e11817-5142-5d16-987a-aa16d5891078"
+SHA = "ea8e919c-243c-51af-8825-aaa63cd721ce"
+
 [compat]
 julia = "1"
 
